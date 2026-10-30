@@ -23,10 +23,10 @@ pub(crate) fn render_marker(
     let head_color = marker.color.unwrap_or(edge_color);
 
     let (dx, dy) = match direction {
-        Position::Left => (depth, 0.0),
-        Position::Right => (-depth, 0.0),
-        Position::Top => (0.0, depth),
-        Position::Bottom => (0.0, -depth),
+        Position::Left => (-depth, 0.0),
+        Position::Right => (depth, 0.0),
+        Position::Top => (0.0, -depth),
+        Position::Bottom => (0.0, depth),
         Position::Center | Position::Closest => {
             if let Some(src) = from {
                 let ddx = tip.x - src.x;
