@@ -428,13 +428,12 @@ impl LogicGatesApp {
 // ---------------------------------------------------------------------------
 
 impl eframe::App for LogicGatesApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let ctx = &ui.ctx().clone();
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Evaluate circuit every frame so colours stay up-to-date
         self.evaluate_circuit();
 
         // -- Toolbar --------------------------------------------------------
-        egui::Panel::top("toolbar").show(ui, |ui| {
+        egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.strong("Add:");
                 if ui.button("Input").clicked() {
@@ -454,7 +453,7 @@ impl eframe::App for LogicGatesApp {
                 ui.add_space(20.0);
                 ui.separator();
                 if ui.button("Fit All").clicked() {
-                    let rect = ctx.viewport_rect();
+                    let rect = ctx.screen_rect();
                     self.state.fit_view(rect, 40.0, ctx.input(|i| i.time));
                 }
                 if ui.button("Zoom In").clicked() {
@@ -467,9 +466,9 @@ impl eframe::App for LogicGatesApp {
         });
 
         // -- Side panel -----------------------------------------------------
-        egui::Panel::right("info_panel")
-            .min_size(200.0)
-            .show(ui, |ui| {
+        egui::SidePanel::right("info_panel")
+            .min_width(200.0)
+            .show(ctx, |ui| {
                 ui.heading("Circuit Info");
                 ui.separator();
 
@@ -530,7 +529,7 @@ impl eframe::App for LogicGatesApp {
         // -- Canvas ---------------------------------------------------------
         egui::CentralPanel::default()
             .frame(egui::Frame::new().fill(egui::Color32::from_rgb(28, 28, 32)))
-            .show(ui, |ui| {
+            .show(ctx, |ui| {
                 let node_widget = GateNodeWidget {
                     signals: &self.signals,
                 };

@@ -241,10 +241,10 @@ fn compute_chord_layout(matrix: &[Vec<f32>]) -> LayoutResult {
         let j = chords[idx].target_group;
         if i > j {
             // Check if the (j,i) chord exists and has >= value; if so, hide this one
-            if let Some(&rev_idx) = chord_lookup.get(&(j, i))
-                && keep[rev_idx]
-            {
-                keep[idx] = false;
+            if let Some(&rev_idx) = chord_lookup.get(&(j, i)) {
+                if keep[rev_idx] {
+                    keep[idx] = false;
+                }
             }
         }
     }
@@ -643,9 +643,8 @@ impl ChordDiagramApp {
 // ---------------------------------------------------------------------------
 
 impl eframe::App for ChordDiagramApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let ctx = &ui.ctx().clone();
-        egui::Panel::top("header").show(ui, |ui| {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::TopBottomPanel::top("header").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.strong("Chord Diagram -- Trade Between Regions");
                 ui.separator();
@@ -655,7 +654,7 @@ impl eframe::App for ChordDiagramApp {
                 ));
                 ui.separator();
                 if ui.button("Fit View").clicked() {
-                    let rect = ctx.viewport_rect();
+                    let rect = ctx.screen_rect();
                     self.state.fit_view(rect, 80.0, ctx.input(|i| i.time));
                 }
                 if ui.button("Zoom In").clicked() {
@@ -669,7 +668,7 @@ impl eframe::App for ChordDiagramApp {
 
         egui::CentralPanel::default()
             .frame(egui::Frame::new().fill(egui::Color32::WHITE))
-            .show(ui, |ui| {
+            .show(ctx, |ui| {
                 if self.first_frame {
                     let rect = ui.available_rect_before_wrap();
                     self.state

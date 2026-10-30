@@ -251,22 +251,21 @@ impl FlowApp {
 // ─────────────────────────────────────────────────────────────────────────────
 
 impl eframe::App for FlowApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let ctx = &ui.ctx().clone();
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // ── Toolbar ───────────────────────────────────────────────────────────
-        egui::Panel::top("toolbar").show(ui, |ui| {
+        egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.heading("egui_xyflow");
                 ui.separator();
 
                 // Viewport controls
                 if ui.button("⟲  Fit All").clicked() {
-                    let rect = ctx.viewport_rect();
+                    let rect = ctx.screen_rect();
                     let t = ctx.input(|i| i.time);
                     self.state.fit_view(rect, 40.0, t);
                 }
                 if ui.button("⊡  Fit Selected").clicked() {
-                    let rect = ctx.viewport_rect();
+                    let rect = ctx.screen_rect();
                     let t = ctx.input(|i| i.time);
                     self.state.fit_selected_nodes(rect, 40.0, t);
                 }
@@ -277,7 +276,7 @@ impl eframe::App for FlowApp {
                         min: egui::pos2(60.0, 80.0),
                         max: egui::pos2(500.0, 380.0),
                     };
-                    let rect = ctx.viewport_rect();
+                    let rect = ctx.screen_rect();
                     let t = ctx.input(|i| i.time);
                     self.state.fit_bounds(bounds, rect, 40.0, t);
                     self.log("📐 fit_bounds called".to_string());
@@ -351,10 +350,10 @@ impl eframe::App for FlowApp {
         });
 
         // ── Event log side panel ──────────────────────────────────────────────
-        egui::Panel::right("events")
+        egui::SidePanel::right("events")
             .resizable(true)
-            .min_size(220.0)
-            .show(ui, |ui| {
+            .min_width(220.0)
+            .show(ctx, |ui| {
                 ui.heading("Event log");
                 if ui.small_button("Clear").clicked() {
                     self.event_log.clear();
@@ -373,7 +372,7 @@ impl eframe::App for FlowApp {
         // ── Main canvas ───────────────────────────────────────────────────────
         egui::CentralPanel::default()
             .frame(egui::Frame::new().fill(egui::Color32::from_rgb(245, 245, 250)))
-            .show(ui, |ui| {
+            .show(ctx, |ui| {
                 let events = FlowCanvas::new(&mut self.state, &DefaultNodeWidget)
                     .connection_validator(&self.validator)
                     .show(ui);

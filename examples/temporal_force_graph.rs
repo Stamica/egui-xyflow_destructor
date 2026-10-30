@@ -661,12 +661,13 @@ impl TemporalForceApp {
                 .as_str()
                 .strip_prefix('n')
                 .and_then(|s| s.parse::<usize>().ok())
-                && let Some(sim) = self.simulation.nodes.iter_mut().find(|n| n.id == id)
             {
-                sim.pinned = flow_node.dragging;
-                if flow_node.dragging {
-                    sim.x = flow_node.position.x;
-                    sim.y = flow_node.position.y;
+                if let Some(sim) = self.simulation.nodes.iter_mut().find(|n| n.id == id) {
+                    sim.pinned = flow_node.dragging;
+                    if flow_node.dragging {
+                        sim.x = flow_node.position.x;
+                        sim.y = flow_node.position.y;
+                    }
                 }
             }
         }
@@ -675,10 +676,10 @@ impl TemporalForceApp {
     fn sync_positions_to_state(&mut self) {
         for sim in &self.simulation.nodes {
             let nid = format!("n{}", sim.id);
-            if let Some(flow_node) = self.state.nodes.iter_mut().find(|n| n.id.as_str() == nid)
-                && !flow_node.dragging
-            {
-                flow_node.position = egui::pos2(sim.x, sim.y);
+            if let Some(flow_node) = self.state.nodes.iter_mut().find(|n| n.id.as_str() == nid) {
+                if !flow_node.dragging {
+                    flow_node.position = egui::pos2(sim.x, sim.y);
+                }
             }
         }
         self.state.rebuild_lookup();
@@ -690,8 +691,7 @@ impl TemporalForceApp {
 // ---------------------------------------------------------------------------
 
 impl eframe::App for TemporalForceApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let ctx = &ui.ctx().clone();
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let wall_time = ctx.input(|i| i.time);
 
         // 1. Advance time
@@ -712,7 +712,7 @@ impl eframe::App for TemporalForceApp {
         // ===== UI =====
 
         // -- Top panel: time scrubber --
-        egui::Panel::top("controls").show(ui, |ui| {
+        egui::TopBottomPanel::top("controls").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.strong("Temporal Force Graph");
                 ui.separator();
@@ -751,10 +751,10 @@ impl eframe::App for TemporalForceApp {
         });
 
         // -- Right panel: stats & legend --
-        egui::Panel::right("info")
+        egui::SidePanel::right("info")
             .resizable(true)
-            .min_size(180.0)
-            .show(ui, |ui| {
+            .min_width(180.0)
+            .show(ctx, |ui| {
                 ui.heading("Statistics");
                 ui.separator();
                 ui.label(format!("Active nodes: {}", self.active_nodes.len()));
@@ -795,15 +795,16 @@ impl eframe::App for TemporalForceApp {
                     self.simulation.reheat(1.0);
                 }
                 if ui.button("Fit View").clicked() {
-                    let rect = ctx.viewport_rect();
-                    self.state.fit_view(rect, 60.0, ctx.input(|i| i.time));
+                    let rect = ctx.screen_rect();
+                    self.state
+                        .fit_view(rect, 60.0, ctx.input(|i| i.time));
                 }
             });
 
         // -- Central panel: force-directed graph --
         egui::CentralPanel::default()
             .frame(egui::Frame::new().fill(egui::Color32::from_rgb(24, 24, 32)))
-            .show(ui, |ui| {
+            .show(ctx, |ui| {
                 let _events = FlowCanvas::new(&mut self.state, &CircleNodeWidget).show(ui);
             });
 

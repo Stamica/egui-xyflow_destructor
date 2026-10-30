@@ -97,12 +97,12 @@ impl Force for ManyBodyForce {
         let dmin2 = self.distance_min_sq;
         let dmax2 = self.distance_max_sq;
 
-        for (i, node) in nodes.iter_mut().enumerate() {
-            if node.fx.is_some() && node.fy.is_some() {
+        for i in 0..n {
+            if nodes[i].fx.is_some() && nodes[i].fy.is_some() {
                 continue;
             }
-            let qx = node.x;
-            let qy = node.y;
+            let qx = nodes[i].x;
+            let qy = nodes[i].y;
 
             let mut dvx = 0.0_f32;
             let mut dvy = 0.0_f32;
@@ -134,8 +134,8 @@ impl Force for ManyBodyForce {
                 dvy += dy * f;
             });
 
-            node.vx += dvx;
-            node.vy += dvy;
+            nodes[i].vx += dvx;
+            nodes[i].vy += dvy;
         }
     }
 }

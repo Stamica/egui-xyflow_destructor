@@ -182,14 +182,7 @@ fn main() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_title("egui_xyflow — stress test")
             .with_inner_size([1400.0, 900.0]),
-        // Uncap frame rate for accurate profiling
-        wgpu_options: eframe::WgpuConfiguration {
-            surface: eframe::SurfaceConfig {
-                present_mode: eframe::wgpu::PresentMode::AutoNoVsync,
-                ..eframe::SurfaceConfig::LOW_LATENCY
-            },
-            ..Default::default()
-        },
+        vsync: false, // Uncap frame rate for accurate profiling
         ..Default::default()
     };
 
@@ -465,8 +458,7 @@ impl StressApp {
 // ─────────────────────────────────────────────────────────────────────────────
 
 impl eframe::App for StressApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let ctx = &ui.ctx().clone();
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let time = ctx.input(|i| i.time);
         let frame_dt = if self.last_time > 0.0 { time - self.last_time } else { 0.0 };
         self.record_frame_time(time);
@@ -481,11 +473,11 @@ impl eframe::App for StressApp {
         };
 
         // Auto-exit after benchmark completes
-        if self.auto_exit
-            && let BenchPhase::Done { .. } = &self.bench_phase
-        {
-            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-            return;
+        if self.auto_exit {
+            if let BenchPhase::Done { .. } = &self.bench_phase {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                return;
+            }
         }
 
         // ── Interactive auto-drag ───────────────────────────────────────────
@@ -494,7 +486,7 @@ impl eframe::App for StressApp {
         }
 
         // ── Top panel ───────────────────────────────────────────────────────
-        egui::Panel::top("toolbar").show(ui, |ui| {
+        egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.heading("Stress Test");
                 ui.separator();
@@ -549,7 +541,7 @@ impl eframe::App for StressApp {
                         self.state.apply_node_changes(&changes);
                     }
                     if ui.button("Fit All").clicked() {
-                        self.state.fit_view(ctx.viewport_rect(), 40.0, time);
+                        self.state.fit_view(ctx.screen_rect(), 40.0, time);
                     }
                     ui.separator();
                 }
@@ -573,15 +565,11 @@ impl eframe::App for StressApp {
         });
 
         // ── Bottom panel: sparkline + report table ──────────────────────────
-        egui::Panel::bottom("bottom_panel")
+        egui::TopBottomPanel::bottom("bottom_panel")
             .resizable(true)
-            .min_size(60.0)
-            .default_size(if matches!(self.bench_phase, BenchPhase::Done { .. }) {
-                260.0
-            } else {
-                60.0
-            })
-            .show(ui, |ui| {
+            .min_height(60.0)
+            .default_height(if matches!(self.bench_phase, BenchPhase::Done { .. }) { 260.0 } else { 60.0 })
+            .show(ctx, |ui| {
                 // Show report table if benchmark is done
                 if let BenchPhase::Done { report } = &self.bench_phase {
                     ui.heading("Benchmark Report");
@@ -661,7 +649,7 @@ impl eframe::App for StressApp {
         // ── Canvas ──────────────────────────────────────────────────────────
         egui::CentralPanel::default()
             .frame(egui::Frame::new().fill(egui::Color32::from_rgb(30, 30, 35)))
-            .show(ui, |ui| {
+            .show(ctx, |ui| {
                 let _events = FlowCanvas::new(&mut self.state, &DefaultNodeWidget).show(ui);
             });
     }
@@ -784,7 +772,7 @@ fn days_to_ymd(mut days: u64) -> (u64, u64, u64) {
 }
 
 fn is_leap(y: u64) -> bool {
-    (y.is_multiple_of(4) && !y.is_multiple_of(100)) || y.is_multiple_of(400)
+    (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
 }
 
 fn write_report(report: &BenchReport) -> std::io::Result<()> {

@@ -506,10 +506,9 @@ fn build_tree() -> Vec<TreeNode> {
 // ---------------------------------------------------------------------------
 
 impl eframe::App for CollapsibleTreeApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let ctx = &ui.ctx().clone();
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // -- Top panel with controls --
-        egui::Panel::top("toolbar").show(ui, |ui| {
+        egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.heading("Collapsible Tree");
                 ui.separator();
@@ -523,13 +522,13 @@ impl eframe::App for CollapsibleTreeApp {
 
                 if ui.button("Expand All").clicked() {
                     self.expand_all();
-                    let rect = ctx.viewport_rect();
+                    let rect = ctx.screen_rect();
                     let t = ctx.input(|i| i.time);
                     self.state.fit_view(rect, 80.0, t);
                 }
                 if ui.button("Collapse All").clicked() {
                     self.collapse_all();
-                    let rect = ctx.viewport_rect();
+                    let rect = ctx.screen_rect();
                     let t = ctx.input(|i| i.time);
                     self.state.fit_view(rect, 80.0, t);
                 }
@@ -537,7 +536,7 @@ impl eframe::App for CollapsibleTreeApp {
                 ui.separator();
 
                 if ui.button("Fit View").clicked() {
-                    let rect = ctx.viewport_rect();
+                    let rect = ctx.screen_rect();
                     let t = ctx.input(|i| i.time);
                     self.state.fit_view(rect, 80.0, t);
                 }
@@ -558,7 +557,7 @@ impl eframe::App for CollapsibleTreeApp {
         // -- Main canvas --
         egui::CentralPanel::default()
             .frame(egui::Frame::new().fill(egui::Color32::WHITE))
-            .show(ui, |ui| {
+            .show(ctx, |ui| {
                 // Fit view on first frame
                 if self.first_frame {
                     let rect = ui.available_rect_before_wrap();
@@ -574,13 +573,16 @@ impl eframe::App for CollapsibleTreeApp {
                     let mut toggled = false;
                     for node_id in &events.nodes_clicked {
                         // Parse the tree index from the node ID "nXX"
-                        if let Some(idx_str) = node_id.0.strip_prefix('n')
-                            && let Ok(idx) = idx_str.parse::<usize>()
-                            && idx < self.tree.len()
-                            && !self.tree[idx].children.is_empty()
-                        {
-                            self.tree[idx].expanded = !self.tree[idx].expanded;
-                            toggled = true;
+                        if let Some(idx_str) = node_id.0.strip_prefix('n') {
+                            if let Ok(idx) = idx_str.parse::<usize>() {
+                                if idx < self.tree.len()
+                                    && !self.tree[idx].children.is_empty()
+                                {
+                                    self.tree[idx].expanded =
+                                        !self.tree[idx].expanded;
+                                    toggled = true;
+                                }
+                            }
                         }
                     }
                     if toggled {
